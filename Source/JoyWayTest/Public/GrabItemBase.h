@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Interface/ItemsInterface.h"
+#include "PlayerGameInstance.h"
 #include "GrabItemBase.generated.h"
 
 UCLASS()
@@ -27,6 +28,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TEnumAsByte<EAttachmentRule> AttachRule = EAttachmentRule::KeepRelative;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	FSavedItem ItemInfo;
 
 	FAttachmentTransformRules GetRule();
 

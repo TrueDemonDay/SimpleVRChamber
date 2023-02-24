@@ -5,7 +5,7 @@
 			"app_key": "application.generated.ue.joywaytest-18319896.ue4editor.exe",
 			"launch_type": "url",
 			"url": "steam://launch/",
-			"action_manifest_path": "F:/Unreal Projects/JoyWayTest/Config/SteamVRBindings/steamvr_manifest.json",
+			"action_manifest_path": "F:/Unreal Projects/JoyWayTest/SimpleVRChamber/Config/SteamVRBindings/steamvr_manifest.json",
 			"strings":
 			{
 				"en_us":

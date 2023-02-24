@@ -85,8 +85,9 @@ public:
 	UFUNCTION()
 	void StopPreperAttachItemRight(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void PreperAttachItem();
-	void StopPreperAttachItem();
+	void PreperAttachItem(AActor* OtherActor, AActor* &SaveItemActor, UStaticMeshComponent* &ItemBox);
+
+	void StopPreperAttachItem(AActor* OtherActor, AActor* &SaveItemActor, UStaticMeshComponent* &ItemBox, bool StoreItem);
 
 	void AttachLeftItem();
 	void AttachRightItem();

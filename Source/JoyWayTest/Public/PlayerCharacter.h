@@ -10,9 +10,13 @@ class UCameraComponent;
 class UMotionControllerComponent;
 class APlayerInventory;
 class USphereComponent;
+class UPlayerDeathWidget;
+class UNiagaraComponent;
+
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGrabDone, AActor*, GrabActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDropDone, AActor*, DropActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FUpdateNiagara);
 
 
 UCLASS()
@@ -33,6 +37,9 @@ class JOYWAYTEST_API APlayerCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* CameraCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Path, meta = (AllowPrivateAccess = "true"))
+	UNiagaraComponent* TraceNiagara;
 
 public:
 	// Sets default values for this character's properties
@@ -101,6 +108,10 @@ protected:
 	TSubclassOf<AActor> TeleportPlaceClass;
 	UPROPERTY(EditDefaultsOnly, Category = SpawnedActors)
 	TSubclassOf<APlayerInventory> PlayerInventoryClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
+	UPlayerDeathWidget* DeathWidget;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FVector> Points;
 
 public:	
 	// Called every frame
@@ -120,5 +131,7 @@ public:
 	FGrabDone GrabDone;
 	UPROPERTY(BlueprintAssignable)
 	FDropDone DropDone;
+	UPROPERTY(BlueprintAssignable)
+	FUpdateNiagara UpdateNiagara;
 
 };

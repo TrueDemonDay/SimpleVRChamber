@@ -6,11 +6,14 @@
 #include "Components/CapsuleComponent.h"
 #include "MotionControllerComponent.h"
 #include "Components/SphereComponent.h"
-#include "Kismet/KismetSystemLibrary.h"		//for sphere trace
+#include "Kismet/KismetSystemLibrary.h"		//for trace
 #include "Kismet/GameplayStatics.h"			//for projectile path
 #include "Interface/ItemsInterface.h"
 #include "GrabItemBase.h"
 #include "PlayerInventory.h"
+#include "Widgets/PlayerDeathWidget.h"
+#include "Components/SplineComponent.h"
+#include "NiagaraComponent.h"
 #include "..\Public\PlayerCharacter.h"
 
 
@@ -52,6 +55,10 @@ APlayerCharacter::APlayerCharacter()
 	PlayerRightController->SetRelativeLocation(PlayerCameraComponent->GetRelativeLocation());
 	PlayerRightController->SetTrackingSource(EControllerHand::Right);
 	PlayerRightController->bDisplayDeviceModel = true;
+
+	TraceNiagara = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Niagara effect for visible trace"));
+	TraceNiagara->SetupAttachment(PlayerRightController);
+	TraceNiagara->SetHiddenInGame(true);
 }
 
 //------------- Called to bind functionality to input----------------------------//
@@ -126,6 +133,8 @@ void APlayerCharacter::TakeAnyDamage(AActor * DamagedActor, float Damage, const 
 	if (!bIsDead)
 	{
 		bIsDead = true;
+		if (DeathWidget)
+			DeathWidget->StartTimerBack(5);
 		ActionDropLeft();
 		ActionDropRight();
 		FTimerHandle Timer;
@@ -267,36 +276,13 @@ void APlayerCharacter::ActionTeleport(float Value)
 {
 	if (Value >= 0.5f && !bIsDead)
 	{
-		if (!bTryTelepor)
-		{
-			bTryTelepor = true;
-		}
-
-		//Set params for trace
-		FPredictProjectilePathParams PredictParams;
-		PredictParams.StartLocation = PlayerRightController->GetComponentLocation();
-		PredictParams.LaunchVelocity = PlayerRightController->GetComponentRotation().RotateVector(FVector(600, 0, 0));
-		PredictParams.ProjectileRadius = 10.f;
-		PredictParams.bTraceWithCollision = true;
-		PredictParams.TraceChannel = ECollisionChannel::ECC_GameTraceChannel1;
-		//TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypesArray;
-		//ObjectTypesArray.Reserve(1);
-		//ObjectTypesArray.Emplace(ECollisionChannel::ECC_GameTraceChannel1);
-		//PredictParams.ObjectTypes = ObjectTypesArray;
-		PredictParams.ActorsToIgnore.Add(this);
-		FPredictProjectilePathResult PredictResult;
-		bCanTeleport = UGameplayStatics::PredictProjectilePath(GetWorld(), PredictParams, PredictResult);
-		TeleportLockation = PredictResult.HitResult.Location;
-		if (TeleportPlace)
-		{
-			TeleportPlace->SetActorHiddenInGame(!bCanTeleport);
-			TeleportPlace->SetActorLocation(TeleportLockation);
-		}
+		FindAndDrawTeleportLocation();
 	}
 	else
 	if (bTryTelepor && !bIsDead)
 	{
 		bTryTelepor = false;
+		TraceNiagara->SetHiddenInGame(true, true);
 		if (TeleportPlace)
 			TeleportPlace->SetActorHiddenInGame(true);
 		if (bCanTeleport)
@@ -309,12 +295,68 @@ void APlayerCharacter::ActionTeleport(float Value)
 	{
 		bTryTelepor = false;
 		bCanTeleport = false;
+		TraceNiagara->SetHiddenInGame(true);
 	}
 }
 
 void APlayerCharacter::FindAndDrawTeleportLocation()
 {
+	if (!bTryTelepor)
+	{
+		bTryTelepor = true;
+		TraceNiagara->SetHiddenInGame(false);
+	}
 
+	//Set params for trace
+	FPredictProjectilePathParams PredictParams;
+	PredictParams.StartLocation = PlayerRightController->GetComponentLocation();
+	PredictParams.LaunchVelocity = PlayerRightController->GetComponentRotation().RotateVector(FVector(600, 0, 0));
+	PredictParams.ProjectileRadius = 10.f;
+	PredictParams.bTraceWithCollision = true;
+	PredictParams.TraceChannel = ECollisionChannel::ECC_GameTraceChannel1;
+	//TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypesArray;
+	//ObjectTypesArray.Reserve(1);
+	//ObjectTypesArray.Emplace(ECollisionChannel::ECC_GameTraceChannel1);
+	//PredictParams.ObjectTypes = ObjectTypesArray;
+	PredictParams.ActorsToIgnore.Add(this);
+	FPredictProjectilePathResult PredictResult;
+	bCanTeleport = UGameplayStatics::PredictProjectilePath(GetWorld(), PredictParams, PredictResult);
+
+	TArray<FVector> Path;
+	for (int i = 0; i < PredictResult.PathData.Num(); i++)
+	{
+		Path.Add(PredictResult.PathData[i].Location);
+	}
+
+	//Update niagara in BP, becouse VisualStudio spam a lot of errors if i try use NiagaraDataInterfaceArrayFunctionLibrary.
+	Points = Path;
+	UpdateNiagara.Broadcast(); 
+
+	TeleportLockation = PredictResult.HitResult.Location;
+	//Check if wall. And i know, in demo VR UE use nave mesh, but i want fix cant TP if something wrong
+	if (bCanTeleport)
+	{
+		FRotator RotToHand = (PlayerRightController->GetComponentLocation() - TeleportLockation).Rotation();
+		FVector StepBackLocation = TeleportLockation - RotToHand.RotateVector(FVector(GetCapsuleComponent()->GetScaledCapsuleHalfHeight(),0,0));
+		TArray<AActor*> ActorsToIgnore;
+		ActorsToIgnore.Add(this);
+		FHitResult Hit;
+		bCanTeleport = UKismetSystemLibrary::LineTraceSingle(GetWorld(), StepBackLocation, StepBackLocation - FVector(0,0,500), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel1), false, ActorsToIgnore, EDrawDebugTrace::None, Hit, true);
+		TeleportLockation = Hit.Location + FVector(0, 0, GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+
+		//Final step: Check we isn't in wall or NO tp zone. But u can still go to the wall
+		if (bCanTeleport)
+		{
+			bCanTeleport = UKismetSystemLibrary::LineTraceSingle(GetWorld(), StepBackLocation + FVector(0, 0, 1), StepBackLocation + FVector(0, 0, 5), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel3), false, ActorsToIgnore, EDrawDebugTrace::None, Hit, true);
+			bCanTeleport = !bCanTeleport;
+		}
+	}
+
+	if (TeleportPlace)
+	{
+		TeleportPlace->SetActorHiddenInGame(!bCanTeleport);
+		TeleportPlace->SetActorLocation(TeleportLockation);
+	}
 }
 
 void APlayerCharacter::TryTeleport()

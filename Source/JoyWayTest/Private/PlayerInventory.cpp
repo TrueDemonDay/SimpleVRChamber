@@ -142,46 +142,45 @@ void APlayerInventory::SpawnAmmoLogic()
 
 void APlayerInventory::PreperAttachItemLeft(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
-	if (OtherActor && !LeftItem && OtherActor->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
-	{
-		{
-			LeftItem = OtherActor;
-			if (MatirealCanStoreItem)
-				LeftItemBox->SetMaterial(0, MatirealCanStoreItem);
-		}
-	}
+	PreperAttachItem(OtherActor, LeftItem, LeftItemBox);
 }
 
 void APlayerInventory::StopPreperAttachItemLeft(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex)
 {
-	if (LeftItem == OtherActor && !StoreLeftItem)
-	{
-		LeftItem = nullptr;
-		if (MatirealWaitItem)
-			LeftItemBox->SetMaterial(0, MatirealWaitItem);
-	}
+	StopPreperAttachItem(OtherActor, LeftItem, LeftItemBox, StoreLeftItem);
 }
 
 void APlayerInventory::PreperAttachItemRight(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
-	if (OtherActor && !RightItem && OtherActor->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
-	{
-		if (OtherActor == OwnerPlayerRef->GetLeftItem() || OtherActor == OwnerPlayerRef->GetRightItem())
-		{
-			RightItem = OtherActor;
-			if (MatirealCanStoreItem)
-				RightItemBox->SetMaterial(0, MatirealCanStoreItem);
-		}
-	}
+	PreperAttachItem(OtherActor, RightItem, RightItemBox);
 }
 
 void APlayerInventory::StopPreperAttachItemRight(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex)
 {
-	if (RightItem == OtherActor && !StoreRightItem)
+	StopPreperAttachItem(OtherActor, RightItem, RightItemBox, StoreRightItem);
+}
+
+void APlayerInventory::PreperAttachItem(AActor * OtherActor, AActor* &SaveItemActor, UStaticMeshComponent* &ItemBox)
+{
+	AGrabItemBase* GrabItem = Cast<AGrabItemBase>(OtherActor);
+	if (OtherActor && !SaveItemActor && GrabItem)
 	{
-		RightItem = nullptr;
+		if ((OtherActor == OwnerPlayerRef->GetLeftItem() || OtherActor == OwnerPlayerRef->GetRightItem()) && GrabItem->ItemInfo.CanSave)
+		{
+			SaveItemActor = OtherActor;
+			if (MatirealCanStoreItem)
+				ItemBox->SetMaterial(0, MatirealCanStoreItem);
+		}
+	}
+}
+
+void APlayerInventory::StopPreperAttachItem(AActor * OtherActor, AActor *& SaveItemActor, UStaticMeshComponent *& ItemBox, bool StoreItem)
+{
+	if (SaveItemActor == OtherActor && !StoreItem)
+	{
+		SaveItemActor = nullptr;
 		if (MatirealWaitItem)
-			RightItemBox->SetMaterial(0, MatirealWaitItem);
+			ItemBox->SetMaterial(0, MatirealWaitItem);
 	}
 }
 
