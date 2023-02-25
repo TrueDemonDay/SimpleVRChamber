@@ -16,6 +16,7 @@ class JOYWAYTEST_API UMapSelecWidget : public UUserWidget
 
 public:
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UPlayerGameInstance* GameInsRef = nullptr;
 
 	UFUNCTION(BlueprintCallable)

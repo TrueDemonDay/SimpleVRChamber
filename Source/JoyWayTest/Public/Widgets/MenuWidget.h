@@ -15,6 +15,7 @@ class JOYWAYTEST_API UMenuWidget : public UUserWidget
 	GENERATED_BODY()
 public:
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UPlayerGameInstance* GameInsRef = nullptr;
 
 	UFUNCTION(BlueprintCallable)

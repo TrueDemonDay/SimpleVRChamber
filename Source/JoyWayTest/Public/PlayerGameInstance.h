@@ -41,18 +41,21 @@ public:
 	//------------------Refereses---------------------------
 	class APlayerCharacter* PlayerRef;
 	class APlayerInventory* PlayerInventoryRef;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UMenuWidget* MenuWidgetRef;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UMapSelecWidget* MapSelectRef;
 
 	FSavedItem LeftIteminInventory;
 	FSavedItem RightItemInventory;
-	FSavedItem ItemInLeftHand;
+	FSavedItem ItemLeftHand;
 	FSavedItem ItemRightHand;
 
 
 	//------------------------------------------------------
 
 	//---------------------Widgets logic--------------------
+
 	void OpenLevelSelector();
 
 	void CloseLevelSelector();
@@ -66,5 +69,13 @@ public:
 	void CloseMenu();
 
 	void Exit();
+
 	//-------------------------------------------------------
+
+	UFUNCTION(BlueprintCallable)
+	void StartOpenNewLevel(FName NameOfMap);
+
+	void SaveItem(AActor* ItemActor, FSavedItem &SaveItemInfo);
+
+	AActor* LoadItem(FSavedItem ItemInfo);
 };

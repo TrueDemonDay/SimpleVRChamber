@@ -14,6 +14,9 @@
 #include "Widgets/PlayerDeathWidget.h"
 #include "Components/SplineComponent.h"
 #include "NiagaraComponent.h"
+#include "PlayerGameInstance.h"
+#include "Components/WidgetInteractionComponent.h"
+#include "Components/WidgetComponent.h"
 #include "..\Public\PlayerCharacter.h"
 
 
@@ -49,6 +52,18 @@ APlayerCharacter::APlayerCharacter()
 	PlayerLeftController->SetRelativeLocation(PlayerCameraComponent->GetRelativeLocation());
 	PlayerLeftController->SetTrackingSource(EControllerHand::Left);
 	PlayerLeftController->bDisplayDeviceModel = true;
+
+	MenuWidget = CreateDefaultSubobject< UWidgetComponent>(TEXT("Menu 3D widget"));
+	MenuWidget->SetupAttachment(PlayerLeftController);
+	MenuWidget->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	MenuWidget->SetDrawAtDesiredSize(true);
+
+	MapSelector = CreateDefaultSubobject< UWidgetComponent>(TEXT("Map select 3D widget"));
+	MapSelector->SetupAttachment(PlayerLeftController);
+	MapSelector->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	MapSelector->SetDrawAtDesiredSize(true);
+
+
 	//Right
 	PlayerRightController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("RightVRController"));
 	PlayerRightController->SetupAttachment(GetCapsuleComponent());
@@ -59,6 +74,11 @@ APlayerCharacter::APlayerCharacter()
 	TraceNiagara = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Niagara effect for visible trace"));
 	TraceNiagara->SetupAttachment(PlayerRightController);
 	TraceNiagara->SetHiddenInGame(true);
+
+	WidgetInterator = CreateDefaultSubobject<UWidgetInteractionComponent>(TEXT("WidgetInterator"));
+	WidgetInterator->SetupAttachment(PlayerRightController);
+	WidgetInterator->TraceChannel = ECollisionChannel::ECC_Visibility;
+
 }
 
 //------------- Called to bind functionality to input----------------------------//
@@ -84,6 +104,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAxis("MovementAxisLeft_X", this, &APlayerCharacter::MoveRight);
 	//Telepeport event
 	PlayerInputComponent->BindAxis("MovementAxisRight_Y", this, &APlayerCharacter::ActionTeleport);
+
+	PlayerInputComponent->BindAction("MenuToggleLeft", IE_Pressed, this, &APlayerCharacter::OpenCloseMenu);
+	PlayerInputComponent->BindAction("MenuToggleRight", IE_Pressed, this, &APlayerCharacter::OpenCloseMenu);
 }
 FVector APlayerCharacter::GetCameraLocation()
 {
@@ -121,6 +144,52 @@ void APlayerCharacter::BeginPlay()
 		PlayerInventoryRef->SetOwnerPlayer(this);
 	}
 	SetRespawnTransform(GetTransform());
+
+	GameInstRef = Cast<UPlayerGameInstance>(GetGameInstance());
+	if (GameInstRef)
+	{
+		GameInstRef->PlayerRef = this;
+
+		LeftGrabingItem = GameInstRef->LoadItem(GameInstRef->ItemLeftHand);
+		AttachLoadItem(LeftGrabingItem, PlayerLeftController);
+
+		RightGrabingItem = GameInstRef->LoadItem(GameInstRef->ItemRightHand);
+		AttachLoadItem(RightGrabingItem, PlayerRightController);
+	}
+}
+
+void APlayerCharacter::AttachLoadItem(AActor * NewItem, UMotionControllerComponent * ControllerToAttach)
+{
+	if (NewItem)
+	{
+		if (NewItem->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
+		{
+			IItemsInterface::Execute_GrabItem(NewItem, ControllerToAttach);
+			FAttachmentTransformRules Rule = Cast<AGrabItemBase>(NewItem)->GetRule();
+			NewItem->AttachToComponent(ControllerToAttach, Rule);
+		}
+	}
+}
+
+void APlayerCharacter::OpenCloseMenu()
+{
+	if (GameInstRef)
+	{
+		if (MenuOpened)
+		{
+			MenuOpened = false;
+			GameInstRef->CloseMenu();
+			WidgetInterator->bShowDebug = false;
+		}
+		else
+		{
+			MenuOpened = true;
+			ActionStopUseLeftItem();
+			ActionStopUseRightItem();
+			GameInstRef->OpenMenu();
+			WidgetInterator->bShowDebug = true;
+		}
+	}
 }
 
 // Called every frame
@@ -160,6 +229,12 @@ void APlayerCharacter::Grab(UMotionControllerComponent * ControllerComponent, AA
 		{
 			if (OutHit.Actor->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
 			{
+				//Drop item for sweep hands
+				if (LeftGrabingItem == OutHit.Actor)
+					ActionDropLeft();
+				if (RightGrabingItem == OutHit.Actor)
+					ActionDropRight();
+
 				GrabDone.Broadcast(OutHit.GetActor());
 				IItemsInterface::Execute_GrabItem(OutHit.GetActor(), ControllerComponent);
 				FAttachmentTransformRules Rule = Cast<AGrabItemBase>(OutHit.Actor)->GetRule();
@@ -229,7 +304,8 @@ void APlayerCharacter::ActionDropRight()
 
 void APlayerCharacter::ActionUseLeftItem()
 {
-	StartUseItem(LeftGrabingItem);
+	if (!MenuOpened)
+		StartUseItem(LeftGrabingItem);
 }
 
 void APlayerCharacter::ActionStopUseLeftItem()
@@ -239,12 +315,18 @@ void APlayerCharacter::ActionStopUseLeftItem()
 
 void APlayerCharacter::ActionUseRightItem()
 {
-	StartUseItem(RightGrabingItem);
+	if (!MenuOpened)
+		StartUseItem(RightGrabingItem);
+	else
+		WidgetInterator->PressPointerKey(InteractKey);
 }
 
 void APlayerCharacter::ActionStopUseRightItem()
 {
-	StopUseItem(RightGrabingItem);
+	if (!MenuOpened)
+		StopUseItem(RightGrabingItem);
+	else
+		WidgetInterator->ReleasePointerKey(InteractKey);
 }
 //-----------------------------------------------------------------------//
 
@@ -346,8 +428,8 @@ void APlayerCharacter::FindAndDrawTeleportLocation()
 
 		//Final step: Check we isn't in wall or NO tp zone. But u can still go to the wall
 		if (bCanTeleport)
-		{
-			bCanTeleport = UKismetSystemLibrary::LineTraceSingle(GetWorld(), StepBackLocation + FVector(0, 0, 1), StepBackLocation + FVector(0, 0, 5), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel3), false, ActorsToIgnore, EDrawDebugTrace::None, Hit, true);
+		{//I don't know why line race working only Dynamic chanal...check it later 
+			bCanTeleport = UKismetSystemLibrary::LineTraceSingle(GetWorld(), TeleportLockation + FVector(0, 0, 1), TeleportLockation + FVector(0, 0, 5), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel3), false, ActorsToIgnore, EDrawDebugTrace::None, Hit, true);
 			bCanTeleport = !bCanTeleport;
 		}
 	}

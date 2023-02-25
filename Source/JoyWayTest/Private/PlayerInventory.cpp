@@ -45,6 +45,20 @@ void APlayerInventory::BeginPlay()
 	ReloadItem = GetWorld()->SpawnActor<AActor>(ReloadItemClass);
 	ReloadItem->FinishSpawning(SpawnAmmoPoint->GetComponentTransform());
 	
+	UPlayerGameInstance* GameInstRef = Cast<UPlayerGameInstance>(GetGameInstance());
+	if (GameInstRef)
+	{
+		GameInstRef->PlayerInventoryRef = this;
+
+		LeftItem = GameInstRef->LoadItem(GameInstRef->LeftIteminInventory);
+		if (LeftItem)
+			AttachToItemBox(LeftItem);
+
+		RightItem = GameInstRef->LoadItem(GameInstRef->RightItemInventory);
+		if (RightItem)
+			AttachToItemBox(RightItem);
+
+	}
 }
 
 // Called every frame
@@ -71,7 +85,6 @@ void APlayerInventory::AttachToItemBox(AActor * AttachItem)
 {
 	if (AttachItem)
 	{
-		FTimerHandle Timer;
 		if (AttachItem == LeftItem)
 		{
 			StoreLeftItem = true;

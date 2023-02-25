@@ -9,6 +9,7 @@ void AShootingItem::ShootFromScene()
 	if (ShootPoint && ProjectileClass && bShoot && AmmoLeft>0)
 	{
 		AmmoLeft--;
+		ItemInfo.AmmoLeft = AmmoLeft;
 		if (AmmoWidget)
 			AmmoWidget->SetAmmoInWidget(AmmoLeft, MaxAmmoCount);
 		FTransform SpawnTransform = ShootPoint->GetComponentTransform();
@@ -65,6 +66,7 @@ void AShootingItem::SetShootPoint(USceneComponent * NewShootPoint)
 void AShootingItem::Reload()
 {
 	AmmoLeft = MaxAmmoCount;
+	ItemInfo.AmmoLeft = AmmoLeft;
 	if (AmmoWidget)
 		AmmoWidget->SetAmmoInWidget(AmmoLeft, MaxAmmoCount);
 }
@@ -72,6 +74,7 @@ void AShootingItem::Reload()
 void AShootingItem::SetAmmoLeft(int NewAmmoLeft)
 {
 	AmmoLeft = NewAmmoLeft;
+	ItemInfo.AmmoLeft = AmmoLeft;
 	if (AmmoWidget)
 		AmmoWidget->SetAmmoInWidget(AmmoLeft, MaxAmmoCount);
 }

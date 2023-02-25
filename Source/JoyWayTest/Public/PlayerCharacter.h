@@ -12,7 +12,11 @@ class APlayerInventory;
 class USphereComponent;
 class UPlayerDeathWidget;
 class UNiagaraComponent;
+class UPlayerGameInstance;
+class UWidgetInteractionComponent;
+class UWidgetComponent;
 
+struct FSavedItem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGrabDone, AActor*, GrabActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDropDone, AActor*, DropActor);
@@ -41,9 +45,18 @@ class JOYWAYTEST_API APlayerCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Path, meta = (AllowPrivateAccess = "true"))
 	UNiagaraComponent* TraceNiagara;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Widgets, meta = (AllowPrivateAccess = "true"))
+	UWidgetInteractionComponent* WidgetInterator;
+
 public:
 	// Sets default values for this character's properties
 	APlayerCharacter();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Widgets, meta = (AllowPrivateAccess = "true"))
+	UWidgetComponent* MenuWidget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Widgets, meta = (AllowPrivateAccess = "true"))
+	UWidgetComponent* MapSelector;
 
 protected:
 	// Called when the game starts or when spawned
@@ -89,7 +102,6 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void SetRespawnTransform(FTransform NewTransform);
-	void Respawn();
 
 	//-----------------------------------
 
@@ -104,6 +116,7 @@ protected:
 	AActor* TeleportPlace = nullptr;
 	APlayerInventory* PlayerInventoryRef = nullptr;
 
+	//BP references
 	UPROPERTY(EditDefaultsOnly, Category = SpawnedActors)
 	TSubclassOf<AActor> TeleportPlaceClass;
 	UPROPERTY(EditDefaultsOnly, Category = SpawnedActors)
@@ -112,6 +125,16 @@ protected:
 	UPlayerDeathWidget* DeathWidget;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FVector> Points;
+
+	UPlayerGameInstance* GameInstRef = nullptr;
+
+	void AttachLoadItem(AActor* NewItem, UMotionControllerComponent* ControllerToAttach);
+
+	bool MenuOpened = false;
+	void OpenCloseMenu();
+
+	UPROPERTY(EditDefaultsOnly, Category = Input)
+	FKey InteractKey;
 
 public:	
 	// Called every frame
@@ -133,5 +156,7 @@ public:
 	FDropDone DropDone;
 	UPROPERTY(BlueprintAssignable)
 	FUpdateNiagara UpdateNiagara;
+
+	void Respawn();
 
 };
