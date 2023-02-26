@@ -15,20 +15,29 @@ struct FSavedItem
 {
 	GENERATED_BODY()
 
-		//~ The following member variable will be accessible by Blueprint Graphs:
-		// This is the tooltip for our test variable.
+	//Default empty construct
+	FSavedItem()
+	: isValid(false), CanSave(false), SaveItemClass(nullptr), isActive(false), isWeapon(false), AmmoLeft(0)
+	{}
+
+	//All params
+	FSavedItem(bool bisValid, bool bCanSave, UClass* uSaveItemClass, bool bisActive, bool bisWeapon, int AmmoCountLeft)
+		: isValid(bisValid), CanSave(bCanSave), SaveItemClass(uSaveItemClass), isActive(bisActive), isWeapon(bisWeapon), AmmoLeft(AmmoCountLeft)
+	{}
+
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool isValid = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool CanSave = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UClass* SaveItemClass;
+	UClass* SaveItemClass = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool isActive = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool isWeapon = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int AmmoLeft;
+	int AmmoLeft = 0;
 };
 
 UCLASS()
