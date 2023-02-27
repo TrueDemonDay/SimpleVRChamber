@@ -27,7 +27,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	TEnumAsByte<EAttachmentRule> AttachRule = EAttachmentRule::KeepRelative;
+	EAttachmentRule AttachRule = EAttachmentRule::KeepRelative;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	FSavedItem ItemInfo;

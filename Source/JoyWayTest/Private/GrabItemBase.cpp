@@ -63,9 +63,9 @@ void AGrabItemBase::StopUseItem_Implementation()
 
 FAttachmentTransformRules AGrabItemBase::GetRule()
 {
-	if (AttachRule.GetValue() == EAttachmentRule::KeepRelative)
+	if (AttachRule == EAttachmentRule::KeepRelative)
 		return FAttachmentTransformRules::KeepRelativeTransform;
-	if (AttachRule.GetValue() == EAttachmentRule::KeepWorld)
+	if (AttachRule == EAttachmentRule::KeepWorld)
 		return FAttachmentTransformRules::KeepWorldTransform;
 	return FAttachmentTransformRules::SnapToTargetNotIncludingScale;
 }
