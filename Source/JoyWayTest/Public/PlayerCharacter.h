@@ -28,34 +28,34 @@ class JOYWAYTEST_API APlayerCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+public:
 	// First person camera
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	UCameraComponent* PlayerCameraComponent;
 
 	//Player controllers
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	UMotionControllerComponent* PlayerLeftController;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	UMotionControllerComponent* PlayerRightController;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	USphereComponent* CameraCollision;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Path, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Path)
 	UNiagaraComponent* TraceNiagara;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Widgets, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Widgets)
 	UWidgetInteractionComponent* WidgetInterator;
 
-public:
 	// Sets default values for this character's properties
 	APlayerCharacter();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Widgets, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Widgets)
 	UWidgetComponent* MenuWidget;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Widgets, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Widgets)
 	UWidgetComponent* MapSelector;
 
 protected:
@@ -106,7 +106,9 @@ protected:
 	//-----------------------------------
 
 	//---------------input functions end-------------------//
+	UPROPERTY()
 	AActor* LeftGrabingItem = nullptr;
+	UPROPERTY()
 	AActor* RightGrabingItem = nullptr;
 
 	//Teleport varrible
@@ -126,6 +128,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FVector> Points;
 
+	UPROPERTY()
 	UPlayerGameInstance* GameInstRef = nullptr;
 
 	void AttachLoadItem(AActor* NewItem, UMotionControllerComponent* ControllerToAttach);
@@ -135,6 +138,8 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	FKey InteractKey;
+
+	FTimerHandle RespawnTimer;
 
 public:	
 	// Called every frame
@@ -146,8 +151,8 @@ public:
 	FVector GetCameraLocation();
 	FRotator GetCameraRotation();
 
-	AActor* GetLeftItem() { return LeftGrabingItem; }
-	AActor* GetRightItem() { return RightGrabingItem; }
+	inline AActor* GetLeftItem() { return LeftGrabingItem; }
+	inline AActor* GetRightItem() { return RightGrabingItem; }
 
 	//Function for diligate
 	UPROPERTY(BlueprintAssignable)

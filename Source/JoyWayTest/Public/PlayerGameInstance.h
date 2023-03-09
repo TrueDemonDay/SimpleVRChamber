@@ -9,6 +9,10 @@
 /**
  * 
  */
+class APlayerCharacter;
+class APlayerInventory;
+class UMenuWidget;
+class UMapSelecWidget;
 
 USTRUCT(BlueprintType)
 struct FSavedItem
@@ -48,12 +52,14 @@ class JOYWAYTEST_API UPlayerGameInstance : public UGameInstance
 public:
 
 	//------------------Refereses---------------------------
-	class APlayerCharacter* PlayerRef;
-	class APlayerInventory* PlayerInventoryRef;
+	UPROPERTY()
+	APlayerCharacter* PlayerRef;
+	UPROPERTY()
+	APlayerInventory* PlayerInventoryRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	class UMenuWidget* MenuWidgetRef;
+	UMenuWidget* MenuWidgetRef;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	class UMapSelecWidget* MapSelectRef;
+	UMapSelecWidget* MapSelectRef;
 
 	FSavedItem LeftIteminInventory;
 	FSavedItem RightItemInventory;
@@ -86,5 +92,6 @@ public:
 
 	void SaveItem(AActor* ItemActor, FSavedItem &SaveItemInfo);
 
+	UFUNCTION()
 	AActor* LoadItem(FSavedItem ItemInfo);
 };

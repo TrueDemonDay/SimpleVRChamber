@@ -108,21 +108,21 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAction("MenuToggleLeft", IE_Pressed, this, &APlayerCharacter::OpenCloseMenu);
 	PlayerInputComponent->BindAction("MenuToggleRight", IE_Pressed, this, &APlayerCharacter::OpenCloseMenu);
 }
+
 FVector APlayerCharacter::GetCameraLocation()
 {
-	if (PlayerCameraComponent)
+	if (PlayerCameraComponent->IsValidLowLevel())
 	{
 		FVector Location = PlayerCameraComponent->GetComponentLocation();
 		return Location;
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString("Error"));
 	return FVector(0, 0, 0);
 }
+
 FRotator APlayerCharacter::GetCameraRotation()
 {
-	if (PlayerCameraComponent)
+	if (PlayerCameraComponent->IsValidLowLevel())
 		return PlayerCameraComponent->GetComponentRotation();
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString("Error"));
 	return FRotator(0,0,0);
 }
 //------------------------------------------------------------------------------------//
@@ -132,21 +132,27 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString("Spawn Teleport place"));
 	if (TeleportPlaceClass)
 	{
 		TeleportPlace = GetWorld()->SpawnActor(TeleportPlaceClass);
+		TeleportPlace->FinishSpawning(GetActorTransform());
 		TeleportPlace->SetHidden(true);
 	}
+
+	//GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString("Spawn inventory"));
 	if (PlayerInventoryClass)
 	{
 		AActor* SpawnedActor = GetWorld()->SpawnActor(PlayerInventoryClass);
+		SpawnedActor->FinishSpawning(GetActorTransform());
 		PlayerInventoryRef = Cast<APlayerInventory>(SpawnedActor);
 		PlayerInventoryRef->SetOwnerPlayer(this);
 	}
 	SetRespawnTransform(GetTransform());
 
+	//GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString("Start cast to instance and load items in Player"));
 	GameInstRef = Cast<UPlayerGameInstance>(GetGameInstance());
-	if (GameInstRef)
+	if (GameInstRef->IsValidLowLevel())
 	{
 		GameInstRef->PlayerRef = this;
 
@@ -160,7 +166,7 @@ void APlayerCharacter::BeginPlay()
 
 void APlayerCharacter::AttachLoadItem(AActor * NewItem, UMotionControllerComponent * ControllerToAttach)
 {
-	if (NewItem)
+	if (NewItem->IsValidLowLevel())
 	{
 		if (NewItem->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
 		{
@@ -173,7 +179,7 @@ void APlayerCharacter::AttachLoadItem(AActor * NewItem, UMotionControllerCompone
 
 void APlayerCharacter::OpenCloseMenu()
 {
-	if (GameInstRef)
+	if (GameInstRef->IsValidLowLevel())
 	{
 		if (MenuOpened)
 		{
@@ -198,21 +204,22 @@ void APlayerCharacter::Tick(float DeltaTime) {Super::Tick(DeltaTime);} //Off it 
 //Taka damage event.
 void APlayerCharacter::TakeAnyDamage(AActor * DamagedActor, float Damage, const UDamageType * DamageType, AController * InstigatedBy, AActor * DamageCauser)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString("!!!!!!!!!!OMFG U DAMAGED!!!!!!!!"));
+	//GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString("!!!!!!!!!!OMFG U DAMAGED!!!!!!!!"));
 	if (!bIsDead)
 	{
 		bIsDead = true;
-		if (DeathWidget)
+		if (DeathWidget->IsValidLowLevel())
+		{
 			DeathWidget->StartTimerBack(5);
+		}
 		ActionDropLeft();
 		ActionDropRight();
-		FTimerHandle Timer;
-		GetWorld()->GetTimerManager().SetTimer(Timer, this, &APlayerCharacter::Respawn, 5);
+		GetWorld()->GetTimerManager().SetTimer(RespawnTimer, this, &APlayerCharacter::Respawn, 5);
 	}
 }
 
 //---------------------------Grab logic--------------------------------//
-void APlayerCharacter::Grab(UMotionControllerComponent * ControllerComponent, AActor* &ActorToAttach)
+void APlayerCharacter::Grab(UMotionControllerComponent* ControllerComponent, AActor* &ActorToAttach)
 {
 	FVector ControllerLocation = ControllerComponent->GetComponentLocation();
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypesArray;
@@ -225,16 +232,20 @@ void APlayerCharacter::Grab(UMotionControllerComponent * ControllerComponent, AA
 	FHitResult OutHit;
 	if (UKismetSystemLibrary::SphereTraceSingleForObjects(GetWorld(), ControllerLocation, ControllerLocation, 10.f, ObjectTypesArray, false, ActorsToIgnore, EDrawDebugTrace::None, OutHit, true))
 	{
-		if (OutHit.Actor !=nullptr)
+		if (OutHit.Actor->IsValidLowLevel())
 		{
-			if (OutHit.Actor->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
+			if (OutHit.Actor->Implements<UItemsInterface>()) //->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
 			{
 				//Drop item for sweep hands
 				if (LeftGrabingItem == OutHit.Actor)
+				{
 					ActionDropLeft();
+				}
 				if (RightGrabingItem == OutHit.Actor)
+				{
 					ActionDropRight();
-
+				}
+				GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString("Interface is found"));
 				GrabDone.Broadcast(OutHit.GetActor());
 				IItemsInterface::Execute_GrabItem(OutHit.GetActor(), ControllerComponent);
 				FAttachmentTransformRules Rule = Cast<AGrabItemBase>(OutHit.Actor)->GetRule();
@@ -248,7 +259,7 @@ void APlayerCharacter::Grab(UMotionControllerComponent * ControllerComponent, AA
 //--------------------------Drop logic-----------------------------------------//
 void APlayerCharacter::Drop(AActor* &ActorToDrop)
 {
-	if (ActorToDrop)
+	if (ActorToDrop->IsValidLowLevel())
 	{
 		if (ActorToDrop->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
 			IItemsInterface::Execute_DropItem(ActorToDrop);
@@ -261,18 +272,18 @@ void APlayerCharacter::Drop(AActor* &ActorToDrop)
 //---------------------------Use items logic----------------------------------//
 void APlayerCharacter::StartUseItem(AActor * Item)
 {
-	if (Item)
+	if (Item->IsValidLowLevel())
 	{
-		if (Item->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
+		if (Item->Implements<UItemsInterface>()) //->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
 			IItemsInterface::Execute_StartUseItem(Item);
 	}
 }
 
 void APlayerCharacter::StopUseItem(AActor * Item)
 {
-	if (Item)
+	if (Item->IsValidLowLevel())
 	{
-		if (Item->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
+		if (Item->Implements<UItemsInterface>()) //->GetClass()->ImplementsInterface(UItemsInterface::StaticClass()))
 			IItemsInterface::Execute_StopUseItem(Item);
 	}
 }
@@ -365,7 +376,7 @@ void APlayerCharacter::ActionTeleport(float Value)
 	{
 		bTryTelepor = false;
 		TraceNiagara->SetHiddenInGame(true, true);
-		if (TeleportPlace)
+		if (TeleportPlace->IsValidLowLevel())
 			TeleportPlace->SetActorHiddenInGame(true);
 		if (bCanTeleport)
 		{
@@ -434,7 +445,7 @@ void APlayerCharacter::FindAndDrawTeleportLocation()
 		}
 	}
 
-	if (TeleportPlace)
+	if (TeleportPlace->IsValidLowLevel())
 	{
 		TeleportPlace->SetActorHiddenInGame(!bCanTeleport);
 		TeleportPlace->SetActorLocation(TeleportLockation);
@@ -455,6 +466,7 @@ void APlayerCharacter::SetRespawnTransform(FTransform NewTransform)
 
 void APlayerCharacter::Respawn()
 {
+	RespawnTimer.Invalidate();
 	TeleportLockation = RespawnTransform.GetLocation();
 	bIsDead = false;
 	TryTeleport();

@@ -6,11 +6,11 @@
 
 void AShootingItem::ShootFromScene()
 {
-	if (ShootPoint && ProjectileClass && bShoot && AmmoLeft>0)
+	if (ShootPoint->IsValidLowLevel() && ProjectileClass && bShoot && AmmoLeft>0)
 	{
 		AmmoLeft--;
 		ItemInfo.AmmoLeft = AmmoLeft;
-		if (AmmoWidget)
+		if (AmmoWidget->IsValidLowLevel())
 			AmmoWidget->SetAmmoInWidget(AmmoLeft, MaxAmmoCount);
 		FTransform SpawnTransform = ShootPoint->GetComponentTransform();
 		SpawnTransform.SetScale3D(FVector((1, 1, 1)));
@@ -39,21 +39,21 @@ void AShootingItem::StopUseItem_Implementation()
 void AShootingItem::GrabItem_Implementation(UMotionControllerComponent * ControllerToAttach)
 {
 	Grab(ControllerToAttach);
-	if (AmmoWidget)
+	if (AmmoWidget->IsValidLowLevel())
 		AmmoWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 }
 
 void AShootingItem::DropItem_Implementation()
 {
 	Drop();
-	if (AmmoWidget)
+	if (AmmoWidget->IsValidLowLevel())
 		AmmoWidget->SetVisibility(ESlateVisibility::Hidden);
 }
 
 void AShootingItem::SetWidgetRef(UWeaponAmmoWidget * NewWeaponWidget)
 {
 	AmmoWidget = NewWeaponWidget;
-	if (AmmoWidget)
+	if (AmmoWidget->IsValidLowLevel())
 		AmmoWidget->SetAmmoInWidget(AmmoLeft, MaxAmmoCount);
 }
 
@@ -67,7 +67,7 @@ void AShootingItem::Reload()
 {
 	AmmoLeft = MaxAmmoCount;
 	ItemInfo.AmmoLeft = AmmoLeft;
-	if (AmmoWidget)
+	if (AmmoWidget->IsValidLowLevel())
 		AmmoWidget->SetAmmoInWidget(AmmoLeft, MaxAmmoCount);
 }
 
@@ -75,7 +75,7 @@ void AShootingItem::SetAmmoLeft(int NewAmmoLeft)
 {
 	AmmoLeft = NewAmmoLeft;
 	ItemInfo.AmmoLeft = AmmoLeft;
-	if (AmmoWidget)
+	if (AmmoWidget->IsValidLowLevel())
 		AmmoWidget->SetAmmoInWidget(AmmoLeft, MaxAmmoCount);
 }
 

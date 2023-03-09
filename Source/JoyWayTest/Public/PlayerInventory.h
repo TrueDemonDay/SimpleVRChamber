@@ -13,19 +13,19 @@ class JOYWAYTEST_API APlayerInventory : public AActor
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Inventory)
 	USceneComponent* SceneRootComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Inventory)
 	UStaticMeshComponent* LeftItemBox;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Inventory)
 	UStaticMeshComponent* RightItemBox;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Inventory)
 	USceneComponent* SpawnAmmoPoint;
 
-public:	
 	// Sets default values for this actor's properties
 	APlayerInventory();
 
@@ -46,15 +46,18 @@ public:
 	FTimerHandle TimerForFollow;
 
 	//Ref for holding items
+	UPROPERTY()
 	AActor* LeftItem = nullptr;
+	UPROPERTY()
 	AActor* RightItem = nullptr;
-
+	UPROPERTY()
 	APlayerCharacter* OwnerPlayerRef = nullptr;
 
 	//Vars for ammo spawn
 
 	UPROPERTY(EditDefaultsOnly, Category = SpawnedActors)
 	TSubclassOf<AActor> ReloadItemClass;
+	UPROPERTY()
 	AActor* ReloadItem = nullptr;
 
 	bool StoreLeftItem = false;

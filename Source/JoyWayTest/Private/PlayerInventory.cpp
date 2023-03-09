@@ -45,17 +45,18 @@ void APlayerInventory::BeginPlay()
 	ReloadItem = GetWorld()->SpawnActor<AActor>(ReloadItemClass);
 	ReloadItem->FinishSpawning(SpawnAmmoPoint->GetComponentTransform());
 	
+	//GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString("Start cast to instance and load items in INVENTORY"));
 	UPlayerGameInstance* GameInstRef = Cast<UPlayerGameInstance>(GetGameInstance());
-	if (GameInstRef)
+	if (GameInstRef->IsValidLowLevel())
 	{
 		GameInstRef->PlayerInventoryRef = this;
 
 		LeftItem = GameInstRef->LoadItem(GameInstRef->LeftIteminInventory);
-		if (LeftItem)
+		if (LeftItem->IsValidLowLevel())
 			AttachToItemBox(LeftItem);
 
 		RightItem = GameInstRef->LoadItem(GameInstRef->RightItemInventory);
-		if (RightItem)
+		if (RightItem->IsValidLowLevel())
 			AttachToItemBox(RightItem);
 
 	}
@@ -70,12 +71,12 @@ void APlayerInventory::Tick(float DeltaTime)
 
 void APlayerInventory::SetOwnerPlayer(APlayerCharacter * NewOwner)
 {
-	if (NewOwner)
+	if (NewOwner->IsValidLowLevel())
 	{
 		OwnerPlayerRef = NewOwner;
 		OwnerPlayerRef->GrabDone.AddDynamic(this, &APlayerInventory::DetachFromItemBox);
 		OwnerPlayerRef->DropDone.AddDynamic(this, &APlayerInventory::AttachToItemBox);
-		if (ReloadItem)
+		if (ReloadItem->IsValidLowLevel())
 			ReloadItem->AttachToComponent(SpawnAmmoPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 		GetWorld()->GetTimerManager().SetTimer(TimerForFollow, this, &APlayerInventory::FollowPlayerLogic, 0.0167f , true);
 	}
@@ -83,7 +84,7 @@ void APlayerInventory::SetOwnerPlayer(APlayerCharacter * NewOwner)
 
 void APlayerInventory::AttachToItemBox(AActor * AttachItem)
 {
-	if (AttachItem)
+	if (AttachItem->IsValidLowLevel())
 	{
 		if (AttachItem == LeftItem)
 		{
@@ -124,11 +125,14 @@ void APlayerInventory::DetachFromItemBox(AActor * DetachItem)
 
 void APlayerInventory::FollowPlayerLogic()
 {
-	FVector NewLocation = OwnerPlayerRef->GetCameraLocation();
-	FRotator NewRotation = FRotator(0, OwnerPlayerRef->GetCameraRotation().Yaw, 0);
-	SetActorLocationAndRotation(NewLocation, NewRotation);
-	
-	SpawnAmmoLogic();
+	if (OwnerPlayerRef->IsValidLowLevel())
+	{
+		FVector NewLocation = OwnerPlayerRef->GetCameraLocation();
+		FRotator NewRotation = FRotator(0, OwnerPlayerRef->GetCameraRotation().Yaw, 0);
+		SetActorLocationAndRotation(NewLocation, NewRotation);
+
+		SpawnAmmoLogic();
+	}
 }
 
 void APlayerInventory::SpawnAmmoLogic()
@@ -173,10 +177,10 @@ void APlayerInventory::StopPreperAttachItemRight(UPrimitiveComponent * Overlappe
 	StopPreperAttachItem(OtherActor, RightItem, RightItemBox, StoreRightItem);
 }
 
-void APlayerInventory::PreperAttachItem(AActor * OtherActor, AActor* &SaveItemActor, UStaticMeshComponent* &ItemBox)
+void APlayerInventory::PreperAttachItem(AActor* OtherActor, AActor* &SaveItemActor, UStaticMeshComponent* &ItemBox)
 {
 	AGrabItemBase* GrabItem = Cast<AGrabItemBase>(OtherActor);
-	if (OtherActor && !SaveItemActor && GrabItem)
+	if (OtherActor->IsValidLowLevel() && !SaveItemActor && GrabItem->IsValidLowLevel())
 	{
 		if ((OtherActor == OwnerPlayerRef->GetLeftItem() || OtherActor == OwnerPlayerRef->GetRightItem()) && GrabItem->ItemInfo.CanSave)
 		{
@@ -187,7 +191,7 @@ void APlayerInventory::PreperAttachItem(AActor * OtherActor, AActor* &SaveItemAc
 	}
 }
 
-void APlayerInventory::StopPreperAttachItem(AActor * OtherActor, AActor *& SaveItemActor, UStaticMeshComponent *& ItemBox, bool StoreItem)
+void APlayerInventory::StopPreperAttachItem(AActor* OtherActor, AActor* &SaveItemActor, UStaticMeshComponent* &ItemBox, bool StoreItem)
 {
 	if (SaveItemActor == OtherActor && !StoreItem)
 	{
